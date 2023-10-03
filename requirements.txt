@@ -1,0 +1,10 @@
+
+
+langchain==0.0.277
+streamlit==1.27.0
+protobuf==3.20
+streamlit_chat
+qdrant-client==1.5.4
+python-dotenv==1.0.0
+openai==0.27.9
+tiktoken==0.4.0
