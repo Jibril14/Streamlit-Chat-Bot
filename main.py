@@ -1,4 +1,7 @@
+import os
+import time
 import re
+import random
 import streamlit as st
 from streamlit_chat import message
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -6,10 +9,6 @@ from langchain.memory import ConversationSummaryBufferMemory
 from langchain.llms import OpenAI
 from langchain.chains import ConversationalRetrievalChain, ConversationChain
 from langchain import PromptTemplate
-import os
-
-import time
-
 import qdrant_client
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Qdrant
@@ -17,18 +16,30 @@ from langchain.vectorstores import Qdrant
 from dotenv import load_dotenv
 load_dotenv(".env")
 
+
 prompt_template = """Use the following pieces of context to answer the question at the end. If you don't
- know the answer, you should say that 'I've searched my database, but I couldn't locate the
- exact information you're looking for. However, some of the documents did mention 
- part of the keywords you entered. May be you want to be more specific in your search.' 
- then try to make up an answer base on the context only.
- 
+ know the answer, or similar answer is not in the context, you should say that 'I've searched my database,
+ but I couldn't locate the exact information you're looking for. May be you want to be more specific
+ in your search. Or checkout similar documents'.
+ Answer user greetings and ask them what they i'd like to learn about. You are a bot that teaches users
+ about american law codes
+
 Context: {context}
 Question: {question}
 Helpful Answer:"""
 QA_PROMPT_ERROR = PromptTemplate(
     template=prompt_template, input_variables=["context", "question"]
 )
+
+# Shuffle logo
+def logo(logo: str = None):
+    logos = [
+
+        "https://res.cloudinary.com/webmonc/image/upload/v1696515089/3558860_r0hs4y.png"
+    ]
+    logo = random.choice(logos)
+    print("LOGO", logo)
+    return logo
 
 
 memory = ConversationSummaryBufferMemory(
@@ -40,11 +51,32 @@ memory = ConversationSummaryBufferMemory(
     output_key='answer')
 
 
-st.title("👋 ChatBot for Learning About American Laws")
+# Streamlit Component
+
+st.set_page_config(
+    page_title="USA Law Codes",
+    # page_icon=":robot:"
+    page_icon=":us:"
+)
+
+st.header("📋 ChatBot for Learning About USA Laws")
+# st.title("👋 📝 ChatBot for Learning About American Laws")
+user_city = st.selectbox("Select a City", ("Maricopa", "LAH"))
+# user_chat = st.text_input("You: ", key=input)
+# submit = st.button("Browse Law Code")
+
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 
 if 'responses' not in st.session_state:
-    st.session_state['responses'] = ["How can I assist you?"]
+    st.session_state['responses'] = ["I'm here to assist you!"]
 
 if 'requests' not in st.session_state:
     st.session_state['requests'] = []
@@ -61,11 +93,21 @@ client = qdrant_client.QdrantClient(
 
 embeddings = OpenAIEmbeddings()
 
-vector_store = Qdrant(
-    client=client,
-    collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
-    embeddings=embeddings
-)
+
+def connect_db(db=None):
+    # db = os.getenv("QDRANT_COLLECTION_NAME")
+    db = user_city
+    if user_city == "LAH":
+        db = "collection_two"  # I.e set a collection/DB name
+    elif db == "Maricopa":
+        db = "test3"
+
+    vector_store = Qdrant(
+        client=client,
+        collection_name=db,
+        embeddings=embeddings
+    )
+    return vector_store
 
 
 def get_urls(doc):
@@ -74,7 +116,7 @@ def get_urls(doc):
     return url
 
 
-def print_answer_citations_sources(result):
+def print_answer_metadata(result):
     links = []
     output_answer = ""
     output_answer += result['answer']
@@ -92,25 +134,25 @@ def print_answer_citations_sources(result):
     return output_answer
 
 
-def extract_page_content_and_title(result):
-    
+def print_page_content(result):
+
     extracted_string = ""
 
-    
     for doc in result['source_documents']:
-       
+
         page_content = doc.page_content[:200] + "..."
-       
-        title = doc.page_content[0:30]
+
+        title = doc.page_content[0:35] + "..."
         if page_content and title:
-            extracted_string += f"----------------------\n\nDocument Title: {title}\n\n\n Excerpt: {page_content}\n\n"
+            extracted_string += f"<hr><h4>Document Title:</h4> {title}\n\n\n <h4>Excerpt:</h4>\
+                {page_content}\n\n"
 
     return extracted_string
 
 
 qa = ConversationalRetrievalChain.from_llm(
     OpenAI(temperature=0),
-    vector_store.as_retriever(),
+    connect_db().as_retriever(),
     memory=st.session_state.buffer_memory,
     verbose=True,
     return_source_documents=True,
@@ -118,36 +160,46 @@ qa = ConversationalRetrievalChain.from_llm(
 
 
 response_container = st.container()
-
 textcontainer = st.container()
 
 details = ''
 
 
 with textcontainer:
-    query = st.text_input("Query: ", key="input")
-    if query:
+    query = st.text_input("You: ", key="input", placeholder="start chat")
+    submit = st.button("send")
+    if submit:
         res = qa({"question": query})
-        response = print_answer_citations_sources(res)
-        details = extract_page_content_and_title(res)
+        response = print_answer_metadata(res)
+        details = print_page_content(res)
         st.session_state.requests.append(query)
         st.session_state.responses.append(response)
 
 
-# count = 0
 with response_container:
     if st.session_state['responses']:
         for i in range(len(st.session_state['responses'])):
-            message(st.session_state['responses'][i], key=str(i))
+            message(
+                st.session_state['responses'][i],
+                key=str(i),
+                avatar_style="no-avatar",
+                logo=logo(),
+                allow_html=True)
             if i < len(st.session_state['requests']):
                 message(
                     st.session_state["requests"][i],
                     is_user=True,
-                    key=str(i) + '_user')
+                    key=str(i) + '_user',
+                    allow_html=True
+                )
+
 
 with st.sidebar:
+    st.image("https://res.cloudinary.com/webmonc/image/upload/v1696603202/Bot%20Streamlit/law_justice1_yqaqvd.jpg")
     if details:
         with st.spinner("Processing..."):
             time.sleep(1)
-            st.write("Similar Documents")
-        st.write(details)
+            st.markdown('__Similar Documents__')
+        # st.write(details)
+        # st.markdown('''<hr>''', unsafe_allow_html=True)
+        st.markdown(f'''<small>{details}</small>''', unsafe_allow_html=True)
