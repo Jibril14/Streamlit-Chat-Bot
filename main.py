@@ -189,13 +189,7 @@ with response_container:
 
 with st.sidebar:
     st.image("https://res.cloudinary.com/webmonc/image/upload/v1696603202/Bot%20Streamlit/law_justice1_yqaqvd.jpg")
-    st.markdown('''<hr>''', unsafe_allow_html=True)
-    st.markdown('<small>Developer</small>', unsafe_allow_html=True)
-    st.markdown(
-            '''<img src='https://res.cloudinary.com/webmonc/image/upload/v1658886619/My%20Profile/me_sufv3k.png' 
-            class='img-fluid' width=32 height=32>
-            (https://www.linkedin.com/mwlite/in/Abdullahi-abdulwasiu-1aaa3311b/)''',
-            unsafe_allow_html=True)
+
     if details:
         with st.spinner("Processing..."):
             time.sleep(1)
