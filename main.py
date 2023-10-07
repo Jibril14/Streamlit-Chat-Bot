@@ -31,14 +31,13 @@ QA_PROMPT_ERROR = PromptTemplate(
     template=prompt_template, input_variables=["context", "question"]
 )
 
-# Shuffle logo
-def logo(logo: str = None):
+# Use different logo
+def logo(logo: str = None) -> str:
     logos = [
 
         "https://res.cloudinary.com/webmonc/image/upload/v1696515089/3558860_r0hs4y.png"
     ]
     logo = random.choice(logos)
-    print("LOGO", logo)
     return logo
 
 
@@ -62,8 +61,7 @@ st.set_page_config(
 st.header("📋 ChatBot for Learning About USA Laws")
 # st.title("👋 📝 ChatBot for Learning About American Laws")
 user_city = st.selectbox("Select a City", ("Maricopa", "LAH"))
-# user_chat = st.text_input("You: ", key=input)
-# submit = st.button("Browse Law Code")
+
 
 hide_st_style = """
             <style>
@@ -94,8 +92,8 @@ client = qdrant_client.QdrantClient(
 embeddings = OpenAIEmbeddings()
 
 
-def connect_db(db=None):
-    # db = os.getenv("QDRANT_COLLECTION_NAME")
+# Change Db base on city
+def connect_db(db: str = None) -> str:
     db = user_city
     if user_city == "LAH":
         db = "collection_two"  # I.e set a collection/DB name
@@ -110,13 +108,13 @@ def connect_db(db=None):
     return vector_store
 
 
-def get_urls(doc):
+def get_urls(doc: str = None) -> "list[str]":
     url_regex = '(http[s]?://?[A-Za-z0-9–_\\.\\-]+\\.[A-Za-z]+/?[A-Za-z0-9$\\–_\\-\\/\\.\\?]*)[\\.)\"]*'
     url = re.findall(url_regex, doc)
     return url
 
 
-def print_answer_metadata(result):
+def print_answer_metadata(result: "list[dict]") -> str:
     links = []
     output_answer = ""
     output_answer += result['answer']
@@ -124,18 +122,15 @@ def print_answer_metadata(result):
         link = get_urls(doc.page_content)
         links.extend(link)
     link = "\n".join(links)
-    # print("Link OUT",links)
-    # print("Lin OUT",link)
+
     if links != []:
         output_answer += "\n" + "See also: " + link
 
-    print("OUT", output_answer)
-
+    # print("OUT", output_answer)
     return output_answer
 
 
-def print_page_content(result):
-
+def print_page_content(result: "list[dict]") -> str:
     extracted_string = ""
 
     for doc in result['source_documents']:
@@ -146,7 +141,6 @@ def print_page_content(result):
         if page_content and title:
             extracted_string += f"<hr><h4>Document Title:</h4> {title}\n\n\n <h4>Excerpt:</h4>\
                 {page_content}\n\n"
-
     return extracted_string
 
 
@@ -163,7 +157,6 @@ response_container = st.container()
 textcontainer = st.container()
 
 details = ''
-
 
 with textcontainer:
     query = st.text_input("You: ", key="input", placeholder="start chat")
@@ -196,10 +189,16 @@ with response_container:
 
 with st.sidebar:
     st.image("https://res.cloudinary.com/webmonc/image/upload/v1696603202/Bot%20Streamlit/law_justice1_yqaqvd.jpg")
+    st.markdown('''<hr>''', unsafe_allow_html=True)
+    st.markdown('<small>Developer</small>', unsafe_allow_html=True)
+    st.markdown(
+            '''<img src='https://res.cloudinary.com/webmonc/image/upload/v1658886619/My%20Profile/me_sufv3k.png' 
+            class='img-fluid' width=32 height=32>
+            (https://www.linkedin.com/mwlite/in/Abdullahi-abdulwasiu-1aaa3311b/)''',
+            unsafe_allow_html=True)
     if details:
         with st.spinner("Processing..."):
             time.sleep(1)
             st.markdown('__Similar Documents__')
-        # st.write(details)
-        # st.markdown('''<hr>''', unsafe_allow_html=True)
         st.markdown(f'''<small>{details}</small>''', unsafe_allow_html=True)
+        
