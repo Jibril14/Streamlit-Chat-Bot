@@ -4,7 +4,7 @@ import re
 import random
 import streamlit as st
 from streamlit_chat import message
-from langchain.embeddings.openai import OpenAIEmbeddings
+# from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain.llms import OpenAI
 from langchain.chains import ConversationalRetrievalChain, ConversationChain
@@ -60,7 +60,7 @@ st.set_page_config(
 
 st.header("📋 ChatBot for Learning About USA Laws")
 # st.title("👋 📝 ChatBot for Learning About American Laws")
-user_city = st.selectbox("Select a City", ("Maricopa", "LAH"))
+user_city = st.selectbox("Select a City", ("Maricopa", "LAH", "PGC"))
 
 
 hide_st_style = """
@@ -99,6 +99,8 @@ def connect_db(db: str = None) -> str:
         db = "collection_two"  # I.e set a collection/DB name
     elif db == "Maricopa":
         db = "test3"
+    elif db == "PGC":
+        db = "pgc"
 
     vector_store = Qdrant(
         client=client,
